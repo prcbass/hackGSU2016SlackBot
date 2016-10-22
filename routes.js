@@ -8,4 +8,5 @@ module.exports = function(app){
   app.get('/emily', controller.hello);
   app.get('/myusername', controller.myusername);
   app.post('/mycanvascourses', controller.getCanvasCourses);
+  app.post('/grades', controller.getCanvasGrades);
 }

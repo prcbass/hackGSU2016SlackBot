@@ -1,3 +1,6 @@
+var path = require('path');
+var config = require(path.resolve('./config.js'));
+
 var Client = require('node-rest-client').Client;
 var client = new Client();
 
@@ -24,7 +27,6 @@ exports.myusername = function(req, res){
 };
 
 exports.getCanvasCourses = function(req, res){
-  //console.log(req.body);
   var canvasToken = req.body.text;
   var courses = "";
 
@@ -52,3 +54,51 @@ exports.getCanvasCourses = function(req, res){
   });
 };
 
+exports.getCanvasGrades = function(req, res){
+  console.log(req.body);
+  var responseURL = req.body.response_url;
+  var ids = [];
+  var txt = "";
+
+  client.get("https://ufl.instructure.com/api/v1/courses?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
+        for(var course in data){
+          var courseID = data[course].id;
+          if(courseID !== undefined) {
+            ids.push(courseID);
+          }
+        }
+
+        var count = 0;
+        res.status(200).json({
+          'text': "Retrieving Assignments...\n"
+        });
+        var second = function() {
+          console.log(count + " in loop");
+          console.log("txt: " + txt);
+          client.get("https://ufl.instructure.com/api/v1/courses/"+ids[count]+"/assignments?search_term=" + "preliminary" + "&access_token=" + config.canvasToken, function (data, response) {
+            for(var course in data){
+                if(course !== undefined){
+                  txt += data[course].name + "\n" + data[course].html_url + "\nSubmitted: " + data[course].has_submitted_submissions + "\nDue: " + data[course].due_at + "\nPoints: " + data[course].points_possible + "\n\n";
+                }
+            }
+            count++;
+            if(count < ids.length) {
+              second();
+            }
+            if(count === ids.length) {
+              console.log("===========================================");
+              var args = {
+                data: {text: txt},
+                headers: {"Content-Type" : "application/json"}
+              }
+              client.post(responseURL, args, function(data, response) {
+                console.log(data);
+                console.log("\n" + response);
+              });
+            }
+          });
+        };
+        second();
+
+    });
+};
