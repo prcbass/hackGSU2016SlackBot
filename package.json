@@ -1,0 +1,22 @@
+{
+  "name": "hackgsu2016slackbot",
+  "version": "1.0.0",
+  "description": "A slack bot for accessing the instructure api",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prcbass/hackGSU2016SlackBot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/prcbass/hackGSU2016SlackBot/issues"
+  },
+  "homepage": "https://github.com/prcbass/hackGSU2016SlackBot#readme",
+  "dependencies": {
+    "slackbots": "^0.5.3"
+  }
+}
