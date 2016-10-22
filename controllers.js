@@ -54,7 +54,7 @@ exports.getCanvasCourses = function(req, res){
   });
 };
 
-exports.getCanvasGrades = function(req, res){
+exports.getCanvasAssign = function(req, res){
   console.log(req.body);
   var responseURL = req.body.response_url;
   var ids = [];
