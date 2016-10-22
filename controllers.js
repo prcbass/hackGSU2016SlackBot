@@ -1,17 +1,27 @@
+var path = require('path');
+var config = require(path.resolve('./config.js'));
 var Client = require('node-rest-client').Client;
 var client = new Client();
 
-exports.index = function(req, res){
-  console.log(req);
-  res.send('USING EXPRESS');
-};
+exports.identifySlackOauth = function(req, res, next){
+  if(Object.keys(req.query).length !== 0 &&
+    Object.keys(req.query)[0] === 'code' &&
+    Object.keys(req.query)[1] === 'state' &&
+    req.query.state === config.slackOauthState)
+  {
+    var slackOauthCode = req.query.code;
 
-exports.lazaro = function(req, res){
-  res.send('LAZARO HERE');
-};
+    client.get('https://slack.com/api/oauth.access?client_id=' + 
+      config.slackClientID + '&client_secret=' + 
+      config.slackClientSecret + '&code=' + slackOauthCode +
+      '&redirect_uri=' + config.redirectURI, function(response, err){
 
-exports.hello = function(req, res){
-  res.send('EMILY IS COOL');
+        //TODO: Do something with access token...
+        //config.slackAccessToken = response.access_token;
+      });
+  }
+
+  next();
 };
 
 exports.myusername = function(req, res){
@@ -24,9 +34,16 @@ exports.myusername = function(req, res){
 };
 
 exports.getCanvasCourses = function(req, res){
-  //console.log(req.body);
-  var canvasToken = req.body.text;
+  var canvasToken;
+  if(req.body){
+    canvasToken = req.body.text;
+  }
+  else{
+    //maybe return JSON with error message?
+    return res.end();
+  }
   var courses = "";
+
 
   client.get("https://ufl.instructure.com/api/v1/courses?access_token=" + canvasToken, function (data, response) {
         // parsed response body as js object
@@ -47,8 +64,7 @@ exports.getCanvasCourses = function(req, res){
 
 
 
-        // raw response
-        //console.log(response);
+        // raw response    //console.log(response);
   });
 };
 

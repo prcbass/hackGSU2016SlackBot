@@ -10,6 +10,8 @@ app.use(bodyParser.urlencoded({
 
 require(path.resolve('./routes.js'))(app);
 
+app.use('/', express.static(__dirname + '/public'));
 
-
-app.listen(8000);
+app.listen(8000, function(){
+  console.log('Node server is listening!');
+});
