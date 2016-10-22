@@ -17,8 +17,10 @@
   },
   "homepage": "https://github.com/prcbass/hackGSU2016SlackBot#readme",
   "dependencies": {
+    "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "mongoose": "^4.6.4",
+    "node-rest-client": "^2.0.1",
     "slackbots": "^0.5.3"
   }
 }
