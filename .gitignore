@@ -78,3 +78,7 @@ mongod
 *.ntvs*
 *.njsproj
 *.sln
+
+# Config Files
+# =========
+config.js
