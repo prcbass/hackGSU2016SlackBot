@@ -287,3 +287,80 @@ exports.getCanvasProfile = function(req, res){
 
   });
 };
+
+exports.onlineCourseManagerHelp = function(req, res){
+  var body = req.body.text;
+  var n = body.search(/help/i);
+  if(n > -1){
+    var info = [];
+
+
+    obj1 = {
+          'color': "4183D7",
+          'text': "`/courses [term]`\nExample: `/courses Spring16`",
+          'title': "List course names you are registered to. Optionally filter by term (e.g. Spring16)",
+          'mrkdwn_in' : ["text"]
+    }
+    obj2 = {
+          'color': "4183D7",
+          'text': '`/assignments [keyword], /assignment start [day/month/year] end [day/month/year]`\nExample: `/assignments math worksheet`\nExample: `/assignments start 10/21/2016 end 10/31/2016`\nExample: `/assignments start 10/21/2016`\nExample: `/assignments end 10/31/2016`',
+          'title': "Search assignments by keyword or by due date.",
+          'mrkdwn_in' : ["text"]
+    }
+    obj3 = {
+          'color': "4183D7",
+          'text': '`/upcomingevents`',
+          'title': "Gets all upcoming events - tests, quizzes, and assignments.",
+           'mrkdwn_in' : ["text"]
+    }
+    obj4 = {
+          'color': "4183D7",
+          'text': '`/announcements`',
+          'title': "Lists all course announcements for the past 7 days.",
+          'mrkdwn_in' : ["text"]
+
+    }
+    obj5 = {
+          'color': "4183D7",
+          'text': '`/profile`',
+          'title': "Gets user's profile information.",
+          'mrkdwn_in' : ["text"]
+    }
+    obj6 = {
+          'color': "4183D7",
+          'text': '`/calendar coursecode start [d/m/y] OR/AND end [d/m/y] OR allevents`\nExample: `/calendar COP4600`\nExample: `/calendar COP4600 start 10/21/2016 end 10/31/2016`\nExample: `/calendar COP4600 start 10/21/2016`\nExample: `/calendar COP4600 end 10/31/2016`\nExample: `/calendar COP4600 allevents`',
+          'title': "List calendar events stored in Canvas given a course code (e.g. COP4600). Optionally show all calendar events or filter by a start and/or end date.",
+          'mrkdwn_in' : ["text"]
+    }
+    obj7 = {
+          'color': "4183D7",
+          'text': '`/onlinecoursemanager [help]`\nExample: `/onlinecoursemanager help`',
+          'title': "Shows list of commands and their purpose, if the user input is 'help'",
+          'mrkdwn_in' : ["text"]
+    }
+
+    info.push(obj1);
+    info.push(obj2);
+    info.push(obj3);
+    info.push(obj4);
+    info.push(obj5);
+    info.push(obj6);
+    info.push(obj7);
+
+    res.json({
+      'text': 'Here are the commands you can use with OnlineCourseManager.',
+      'attachments': info
+    });
+  }
+  else{
+    var info = [];
+    obj = {
+          'text': "Use '/onlinecoursemanager help' to see all the commands of this bot."
+    }
+    info.push(obj);
+    res.json({
+      'attachments': info
+    });
+  }
+
+};
