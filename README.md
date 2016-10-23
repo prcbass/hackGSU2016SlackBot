@@ -66,11 +66,13 @@ module.exports = {
   slackClientID : 'YOUR-SLACK-CLIENT-ID',
   slackClientSecret : 'YOUR-SLACK-CLIENT-SECRET',
   slackOauthState : 'hackGSU',
-  redirectURI : 'https://9df9971b.ngrok.io',
+  redirectURI : 'SEE-STEP-5',
 };
 ```
 
-4) Install npm and node.js. Run ``npm install``
+4) Install npm, ngrok, and node.js. Run ``npm install``
+
+5) Run `node server.js` and `./ngrok http 8000` in separate terminals and note the https URL fto use for redirectURI.
 
 ## API Reference
 
