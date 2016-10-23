@@ -160,3 +160,61 @@ exports.getCanvasAssign = function(req, res){
       second();
     });
 };
+
+exports.getCanvasAnnouncements = function(req, res){
+  var ids = [];
+  var courseNames = [];
+  var responseURL = req.body.response_url;
+  var txt = "";
+
+  var lastWeek = new Date();
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  res.status(200).json({
+    'text': "Retrieving announcements from the last 7 days...\n"
+  });
+
+  client.get("https://ufl.instructure.com/api/v1/courses?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
+    for(var course in data){
+      var name = data[course].name;
+      var courseID = data[course].id;
+      if(courseID !== undefined && name !== undefined) {
+        ids.push(courseID);
+        courseNames.push(name);
+      }
+    }
+
+    var count = 0;
+    var announce = function(){
+      client.get("https://ufl.instructure.com/api/v1/announcements?context_codes=course_" + ids[count] + "&access_token=" + config.canvasToken, function (data, response) {
+        txt += "\n\n\n-------- " + courseNames[count] + " --------";
+        for(var course in data){
+          if(data[course] !== undefined){
+            var posted = new Date(data[course].posted_at);
+            if(posted.valueOf() >= lastWeek) {
+              txt += "\nTitle: " + data[course].title;
+              txt += "\nPosted: " + data[course].posted_at;
+              txt += "\n" + data[course].html_url;
+              txt += "\nMessage: " + data[course].message + "\n";
+            }
+          }
+        }
+        count++;
+        if(count === ids.length){
+          if(txt === "") {
+            txt = "\n\nSorry, no announcements found";
+          }
+          var args = {
+            data: {text: txt},
+            headers: {"Content-Type" : "application/json"}
+          }
+          client.post(responseURL, args, function(data, response) {});
+        }
+        if(count < ids.length){
+          announce();
+        }
+      });
+    }
+    announce();
+  });
+}
