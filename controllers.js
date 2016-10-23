@@ -1,6 +1,7 @@
 var path = require('path');
 var config = require(path.resolve('./config.js'));
 var Client = require('node-rest-client').Client;
+var striptags = require('striptags');
 var client = new Client();
 
 exports.identifySlackOauth = function(req, res, next){
@@ -195,7 +196,7 @@ exports.getCanvasAnnouncements = function(req, res){
               txt += "\nTitle: " + data[course].title;
               txt += "\nPosted: " + data[course].posted_at;
               txt += "\n" + data[course].html_url;
-              txt += "\nMessage: " + data[course].message + "\n";
+              txt += "\nMessage: " + striptags(data[course].message) + "\n";
             }
           }
         }
