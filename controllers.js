@@ -58,14 +58,14 @@ var createDateFromTerm = function(courseTerm){
   //TODO: don't assume year is > 2000
   var dateYear = 2000 + parseInt(year);
   var termStartDate, termEndDate;
-  
+
   //TODO: add summer AND don't use UF specific dates
   if(term === 'fall'){
     termStartDate = createDateAtBeginningOfDay(7, 22, dateYear); //August 22nd
 
     termEndDate = createDateAtBeginningOfDay(0, 4, dateYear + 1); //January 4th of following year
   }
-  
+
   if(term === 'spring'){
     termStartDate = createDateAtBeginningOfDay(0, 4, dateYear);
 
@@ -104,7 +104,7 @@ exports.getCanvasCourses = function(req, res){
             var courseStartDate = new Date(data[course].start_at);
 
 
-            if(dateObjToCompare.termStartDate <= courseStartDate && 
+            if(dateObjToCompare.termStartDate <= courseStartDate &&
               dateObjToCompare.termEndDate > courseStartDate)
             {
               courses.push({'title' : courseName});
@@ -137,7 +137,7 @@ exports.getCanvasAssign = function(req, res){
   var usingSearchTerm = true;
   var tokens = searchTerm.split(" ");
   var ids = [];
-  var txt = "";
+  var txt = [];
   var htmlURL;
 
   var start = new Date();
@@ -192,14 +192,39 @@ exports.getCanvasAssign = function(req, res){
         }
         client.get(htmlUrl, function (data, response) {
           for(var course in data){
+
+            var pretext;
+            if(data[course].has_submitted_submissions === true) {
+              pretext = "Due: " + data[course].due_at + "  |  COMPLETE";
+            }
+            else {
+              pretext = "Due: " + data[course].due_at + "  |  INCOMPLETE";
+            }
+            var title = data[course].name;
+            var title_link = data[course].html_url;
+            var textBody = striptags(data[course].message);
+            var footer = "Points: " + data[course].points_possible;
+
               if(course !== undefined && usingSearchTerm === true){
-                txt += data[course].name + "\n" + data[course].html_url + "\nSubmitted: " + data[course].has_submitted_submissions + "\nDue: " + data[course].due_at + "\nPoints: " + data[course].points_possible + "\n\n";
+                txt.push({
+                  "pretext": pretext,
+                  "title": title,
+                  "title_link": title_link,
+                  "text": textBody,
+                  "footer": footer
+                });
               }
               else if(course !== undefined && usingSearchTerm === false) {
                 var assignmentDate = new Date(data[course].due_at);
                 console.log("assignment date: " + assignmentDate + ", Start: " + start + ", End: " + end);
                 if(assignmentDate <= end && assignmentDate >= start) {
-                  txt += data[course].name + "\n" + data[course].html_url + "\nSubmitted: " + data[course].has_submitted_submissions + "\nDue: " + data[course].due_at + "\nPoints: " + data[course].points_possible + "\n\n";
+                  txt.push({
+                    "pretext": pretext,
+                    "title": title,
+                    "title_link": title_link,
+                    "text": textBody,
+                    "footer": footer
+                  });
                 }
               }
           }
@@ -208,11 +233,13 @@ exports.getCanvasAssign = function(req, res){
             second();
           }
           if(count === ids.length) {
-            if(txt === "") {
-              txt = "Sorry, no assignments found";
+            if(txt.length === 0) {
+              txt.push({
+                "pretext": "Sorry, no assignments found"
+              });
             }
             var args = {
-              data: {text: txt},
+              data: {"attachments": txt},
               headers: {"Content-Type" : "application/json"}
             }
             client.post(responseURL, args, function(data, response) {});
@@ -274,7 +301,7 @@ exports.getCanvasProfile = function(req, res){
           obj = {
                 'title': name,
                 'text': "Email: " + email,
-                'image_url' : url 
+                'image_url' : url
           }
           info.push(obj);
 
