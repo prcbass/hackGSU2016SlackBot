@@ -17,4 +17,3 @@ var instructureBot = new InstructureBot({
 });
 
 instructureBot.run();
-//instructureBot._welcomeMessage();
