@@ -178,7 +178,7 @@ exports.getCanvasAssign = function(req, res){
           courseNames.push(name);
         }
       }
-    }
+    
 
       var count = 0;
       var second = function() {
@@ -266,9 +266,9 @@ exports.getCanvasEvents = function(req, res){
         console.log("EVENT AT: " + data[id].endAt + "\n");
 
         obj = {
-              'title': "Event: " + assignmentName,
-              'text': "\n" + url + "\n Description: " + striptags(description) +
-              "\nEvent at: " + endAt +"\n"
+            'title': "Event: " + assignmentName,
+            'text': "\n" + url + "\n Description: " + striptags(description) +
+            "\nEvent at: " + endAt +"\n"
         }
         courses.push(obj);
 
@@ -297,14 +297,9 @@ exports.getCanvasProfile = function(req, res){
         'text': "Email: " + email,
         'image_url' : url 
       }
-      info.push(obj);
 
-          obj = {
-                'title': name,
-                'text': "Email: " + email,
-                'image_url' : url
-          }
-          info.push(obj);
+    info.push(obj);
+    }
 
     res.json({
       'text': 'User information: ',
@@ -328,36 +323,221 @@ exports.getCourseEvents = function(req, res){
     for(var course in data){
       console.log(data[course]);
       console.log(data[course].course_code);
-      if(data[course].course_code !== undefined && 
-        data[course].course_code.toLowerCase() === courseCode.toLowerCase()){
+      console.log('===============================');
+      if(data[course].course_code !== undefined){
+        console.log(data[course].course_code.toLowerCase().indexOf(courseCode.toLowerCase()));
+      }
 
+      if(data[course].course_code !== undefined && 
+         data[course].course_code.toLowerCase().indexOf(courseCode.toLowerCase()) > -1){
+
+        courseFound = true;
         var courseContextCode = 'course_' + data[course].id;
+        console.log(courseContextCode);
 
         //only coursecode was given, use today as default (from canvas API)
         if(tokens.length === 1){
           client.get('https://ufl.instructure.com/api/v1/calendar_events?per_page=100&contex_codes[]=' + courseContextCode + '&access_token=' + config.canvasToken, function(calData, response){
 
+            for(event in calData){
 
+              var calEventObj = {
+                'title' : calData[event].title,
+                'text' : 'Event URL: ' + calData[event].html_url + '\nEvent Start: ' + 
+                new Date(calData[event].start_at) + '\nEvent End: ' + 
+                new Date(calData[event].end_at) + '\nDescription: ' + striptags(calData[event].description)
+              };
 
+              calendarEvents.push(calEventObj);
+            }
 
+            var text;
+            if(calendarEvents.length === 0){
+              text = 'No calendar events found for \"' + courseCode + '\"'; 
+            }
+            else{
+              text = 'Calendar Events for ' + courseCode;
+            }
+
+            res.json({
+              'text': text,
+              'attachments': calendarEvents
+            });
 
           });
         }
         //only start was specified
         else if(tokens[1].toLowerCase() === 'start' && tokens.length === 3){
+          var dateTokens = tokens[2].split('/');
+          var month = dateTokens[0];
+          var day = dateTokens[1];
+          var year = dateTokens[3];
 
+          //TODO: make this more robust
+          if(year.length === 2){
+            year = '20' + year;
+          }
+
+          var startDate = year + '-' + month + '-' + day;
+          var endDate = year + '-' + month + '-' + (parseInt(day) + 1).toString();
+
+          client.get('https://ufl.instructure.com/api/v1/calendar_events?per_page=100&contex_codes[]=' + courseContextCode + 
+            '&start_date=' + startDate + '&end_date=' + endDate + '&access_token=' + config.canvasToken, function(calData, response){
+
+            for(event in calData){
+
+              var calEventObj = {
+                'title' : calData[event].title,
+                'text' : 'Event URL: ' + calData[event].html_url + '\nEvent Start: ' + 
+                new Date(calData[event].start_at) + '\nEvent End: ' + 
+                new Date(calData[event].end_at) + '\nDescription: ' + striptags(calData[event].description)
+              };
+
+              calendarEvents.push(calEventObj);
+            }
+
+
+            var text;
+            if(calendarEvents.length === 0){
+              text = 'No calendar events found for \"' + courseCode + '\" for the specified date range'; 
+            }
+            else{
+              text = 'Calendar Events for ' + courseCode;
+            }
+
+            res.json({
+              'text': text,
+              'attachments': calendarEvents
+            });
+          });
         }
         //only end was specified
         else if(tokens[1].toLowerCase() === 'end' && tokens.length === 3){
+          var dateTokens = tokens[2].split('/');
+          var month = dateTokens[0];
+          var day = dateTokens[1];
+          var year = dateTokens[3];
 
+          //TODO: make this more robust
+          if(year.length === 2){
+            year = '20' + year;
+          }
+
+          var endDate = year + '-' + month + '-' + day;
+          var startDate = year + '-' + month + '-' + (parseInt(day) - 1).toString(); //TODO: works for all days except month boundaries
+
+          client.get('https://ufl.instructure.com/api/v1/calendar_events?per_page=100&contex_codes[]=' + courseContextCode + 
+            '&start_date=' + startDate + '&end_date=' + endDate + '&access_token=' + config.canvasToken, function(calData, response){
+
+            for(event in calData){
+
+              var calEventObj = {
+                'title' : calData[event].title,
+                'text' : 'Event URL: ' + calData[event].html_url + '\nEvent Start: ' + 
+                new Date(calData[event].start_at) + '\nEvent End: ' + 
+                new Date(calData[event].end_at) + '\nDescription: ' + striptags(calData[event].description)
+              };
+
+              calendarEvents.push(calEventObj);
+            }
+
+            var text;
+            if(calendarEvents.length === 0){
+              text = 'No calendar events found for \"' + courseCode + '\" for the specified date range'; 
+            }
+            else{
+              text = 'Calendar Events for ' + courseCode;
+            }
+
+            res.json({
+              'text': text,
+              'attachments': calendarEvents
+            });
+          });
         }
         //both start and end were specified
         else if(tokens[1].toLowerCase() === 'start' && tokens[3].toLowerCase() === 'end' && tokens.length === 5){
+          var startDateTokens = tokens[2].split('/');
+          var endDateTokens = tokens[4].split('/');
 
+          var startMonth = startDateTokens[0];
+          var startDay = startDateTokens[1];
+          var startYear = startDateTokens[2];
+
+          if(startYear.length == 2){
+            startYear = '20' + startYear;  
+          }
+
+          var endMonth = endDateTokens[0];
+          var endDay = endDateTokens[1];
+          var endYear = endDateTokens[2];
+
+          if(endYear.length == 2){
+            endYear = '20' + endYear;  
+          }
+
+          var startDate = startYear + '-' + startMonth + '-' + startDay;
+          var endDate = endYear + '-' + endMonth + '-' + endDay;
+
+          client.get('https://ufl.instructure.com/api/v1/calendar_events?per_page=100&contex_codes[]=' + courseContextCode + 
+            '&start_date=' + startDate + '&end_date=' + endDate + '&access_token=' + config.canvasToken, function(calData, response){
+
+            for(event in calData){
+
+              var calEventObj = {
+                'title' : calData[event].title,
+                'text' : 'Event URL: ' + calData[event].html_url + '\nEvent Start: ' + 
+                new Date(calData[event].start_at) + '\nEvent End: ' + 
+                new Date(calData[event].end_at) + '\nDescription: ' + striptags(calData[event].description)
+              };
+
+              calendarEvents.push(calEventObj);
+            }
+
+            var text;
+            if(calendarEvents.length === 0){
+              text = 'No calendar events found for \"' + courseCode + '\" for the specified date range'; 
+            }
+            else{
+              text = 'Calendar Events for ' + courseCode;
+            }
+
+            res.json({
+              'text': text,
+              'attachments': calendarEvents
+            });
+          });
         }
         //allevents specified
         else if(tokens[1].toLowerCase() === 'allevents' && tokens.length === 2){
 
+          client.get('https://ufl.instructure.com/api/v1/calendar_events?per_page=100&contex_codes[]=' + courseContextCode + '&all_events=true&access_token=' + config.canvasToken, function(calData, response){
+
+            for(event in calData){
+
+              var calEventObj = {
+                'title' : calData[event].title,
+                'text' : 'Event URL: ' + calData[event].html_url + '\nEvent Start: ' + 
+                new Date(calData[event].start_at) + '\nEvent End: ' + 
+                new Date(calData[event].end_at) + '\nDescription: ' + striptags(calData[event].description)
+              };
+
+              calendarEvents.push(calEventObj);
+            }
+
+            var text;
+            if(calendarEvents.length === 0){
+              text = 'No calendar events found for \"' + courseCode + '\" for the specified date range'; 
+            }
+            else{
+              text = 'Calendar Events for ' + courseCode;
+            }
+
+            res.json({
+              'text': text,
+              'attachments': calendarEvents
+            });
+          });
         }
         //input not valid, tell user
         else{
@@ -374,4 +554,81 @@ exports.getCourseEvents = function(req, res){
       });
     }
   });
+};
+
+exports.onlineCourseManagerHelp = function(req, res){
+  var body = req.body.text;
+  var n = body.search(/help/i);
+  if(n > -1){
+    var info = [];
+
+
+    obj1 = {
+      'color': "4183D7",
+      'text': "`/courses [term]`\nExample: `/courses Spring16`",
+      'title': "List course names you are registered to. Optionally filter by term (e.g. Spring16)",
+      'mrkdwn_in' : ["text"]
+    }
+    obj2 = {
+      'color': "4183D7",
+      'text': '`/assignments [keyword], /assignment start [day/month/year] end [day/month/year]`\nExample: `/assignments math worksheet`\nExample: `/assignments start 10/21/2016 end 10/31/2016`\nExample: `/assignments start 10/21/2016`\nExample: `/assignments end 10/31/2016`',
+      'title': "Search assignments by keyword or by due date.",
+      'mrkdwn_in' : ["text"]
+    }
+    obj3 = {
+      'color': "4183D7",
+      'text': '`/upcomingevents`',
+      'title': "Gets all upcoming events - tests, quizzes, and assignments.",
+       'mrkdwn_in' : ["text"]
+    }
+    obj4 = {
+      'color': "4183D7",
+      'text': '`/announcements`',
+      'title': "Lists all course announcements for the past 7 days.",
+      'mrkdwn_in' : ["text"]
+
+    }
+    obj5 = {
+      'color': "4183D7",
+      'text': '`/profile`',
+      'title': "Gets user's profile information.",
+      'mrkdwn_in' : ["text"]
+    }
+    obj6 = {
+      'color': "4183D7",
+      'text': '`/calendar coursecode start [d/m/y] OR/AND end [d/m/y] OR allevents`\nExample: `/calendar COP4600`\nExample: `/calendar COP4600 start 10/21/2016 end 10/31/2016`\nExample: `/calendar COP4600 start 10/21/2016`\nExample: `/calendar COP4600 end 10/31/2016`\nExample: `/calendar COP4600 allevents`',
+      'title': "List calendar events stored in Canvas given a course code (e.g. COP4600). Optionally show all calendar events or filter by a start and/or end date.",
+      'mrkdwn_in' : ["text"]
+    }
+    obj7 = {
+      'color': "4183D7",
+      'text': '`/onlinecoursemanager [help]`\nExample: `/onlinecoursemanager help`',
+      'title': "Shows list of commands and their purpose, if the user input is 'help'",
+      'mrkdwn_in' : ["text"]
+    }
+
+    info.push(obj1);
+    info.push(obj2);
+    info.push(obj3);
+    info.push(obj4);
+    info.push(obj5);
+    info.push(obj6);
+    info.push(obj7);
+
+    res.json({
+      'text': 'Here are the commands you can use with OnlineCourseManager.',
+      'attachments': info
+    });
+  }
+  else{
+    var info = [];
+    obj = {
+          'text': "Use '/onlinecoursemanager help' to see all the commands of this bot."
+    }
+    info.push(obj);
+    res.json({
+      'attachments': info
+    });
+  }
+
 };
