@@ -137,6 +137,7 @@ exports.getCanvasAssign = function(req, res){
   var usingSearchTerm = true;
   var tokens = searchTerm.split(" ");
   var ids = [];
+  var courseNames = [];
   var txt = [];
   var htmlURL;
 
@@ -177,32 +178,34 @@ exports.getCanvasAssign = function(req, res){
     client.get("https://ufl.instructure.com/api/v1/courses?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
       for(var course in data){
         var courseID = data[course].id;
-        if(courseID !== undefined) {
+        var name = data[course].name;
+        if(courseID !== undefined && name !== undefined) {
           ids.push(courseID);
+          courseNames.push(name);
         }
       }
 
       var count = 0;
       var second = function() {
         if(usingSearchTerm === true) {
-          var htmlUrl = "https://ufl.instructure.com/api/v1/courses/"+ids[count]+"/assignments?search_term=" + searchTerm + "&access_token=" + config.canvasToken;
+          var htmlUrl = "https://ufl.instructure.com/api/v1/courses/"+ids[count]+"/assignments?search_term=" + searchTerm + "&bucket=future&access_token=" + config.canvasToken;
         }
         else {
-          var htmlUrl = "https://ufl.instructure.com/api/v1/courses/"+ids[count]+"/assignments?bucket=future&access_token=" + config.canvasToken;
+          var htmlUrl = "https://ufl.instructure.com/api/v1/courses/"+ids[count]+"/assignments?access_token=" + config.canvasToken;
         }
         client.get(htmlUrl, function (data, response) {
           for(var course in data){
 
-            var pretext;
-            if(data[course].has_submitted_submissions === true) {
-              pretext = "Due: " + data[course].due_at + "  |  COMPLETE";
-            }
-            else {
-              pretext = "Due: " + data[course].due_at + "  |  INCOMPLETE";
-            }
+            var pretext = courseNames[count];
+            var textBody;
             var title = data[course].name;
             var title_link = data[course].html_url;
-            var textBody = striptags(data[course].message);
+            if(data[course].has_submitted_submissions === true) {
+              textBody = "Due: " + data[course].due_at + "  |  COMPLETE";
+            }
+            else {
+              textBody = "Due: " + data[course].due_at + "  |  INCOMPLETE";
+            }
             var footer = "Points: " + data[course].points_possible;
 
               if(course !== undefined && usingSearchTerm === true){
