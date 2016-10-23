@@ -167,6 +167,7 @@ exports.getCanvasAnnouncements = function(req, res){
   var courseNames = [];
   var responseURL = req.body.response_url;
   var txt = "";
+  var attach = [];
 
   var lastWeek = new Date();
   lastWeek.setDate(lastWeek.getDate() - 7);
@@ -193,20 +194,28 @@ exports.getCanvasAnnouncements = function(req, res){
           if(data[course] !== undefined){
             var posted = new Date(data[course].posted_at);
             if(posted.valueOf() >= lastWeek) {
-              txt += "\nTitle: " + data[course].title;
-              txt += "\nPosted: " + data[course].posted_at;
-              txt += "\n" + data[course].html_url;
-              txt += "\nMessage: " + striptags(data[course].message) + "\n";
-            }
+              var pretext = courseNames[count];
+              var title = data[course].title;
+              var title_link = data[course].html_url;
+              var footer = data[course].posted_at;
+              var textBody = striptags(data[course].message);
+              attach.push({
+                "pretext": pretext,
+                "title": title,
+                "footer": footer,
+                "title_link": title_link,
+                "text": textBody
+              });
+            };
           }
         }
         count++;
         if(count === ids.length){
-          if(txt === "") {
-            txt = "\n\nSorry, no announcements found";
+          if(attach === "") {
+            attach = "\n\nSorry, no announcements found";
           }
           var args = {
-            data: {text: txt},
+            data: {"attachments": attach},
             headers: {"Content-Type" : "application/json"}
           }
           client.post(responseURL, args, function(data, response) {});
