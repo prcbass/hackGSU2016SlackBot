@@ -122,7 +122,6 @@ exports.getCanvasEvents = function(req, res){
   var courses = [];
   client.get("https://ufl.instructure.com/api/v1/users/self/upcoming_events?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
 
-        var count = 1;
         for(var id in data){
           var assignmentName = data[id].title;
           var url = data[id].url;
@@ -142,7 +141,6 @@ exports.getCanvasEvents = function(req, res){
                   "\nEvent at: " + endAt +"\n"
             }
             courses.push(obj);
-            count = count + 1;
 
           }
         }
@@ -150,6 +148,36 @@ exports.getCanvasEvents = function(req, res){
         res.json({
           'text': 'The following are upcoming: ',
           'attachments': courses
+        });
+
+  });
+};
+
+exports.getCanvasProfile = function(req, res){
+  var info = [];
+  client.get("https://ufl.instructure.com/api/v1/users/self/profile?access_token=" + config.canvasToken, function (data, response) {
+
+        var name = data.short_name;
+        var url = data.avatar_url;
+        var email = data.login_id;
+
+        if(name !== undefined){
+          console.log("NAME: " + data.name + "\n");
+          console.log("URL: " + data.avatar_url + "\n");
+          console.log("EMAIL: " + data.login_id + "\n");
+
+          obj = {
+                'title': name,
+                'text': "Email: " + email,
+                'image_url' : url 
+          }
+          info.push(obj);
+
+        }
+
+        res.json({
+          'text': 'User information: ',
+          'attachments': info
         });
 
   });
