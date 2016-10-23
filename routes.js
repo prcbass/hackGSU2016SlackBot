@@ -7,5 +7,6 @@ module.exports = function(app){
   app.post('/mycanvascourses', controller.getCanvasCourses);
   app.post('/assignments', controller.getCanvasAssign);
   app.post('/upcomingevents', controller.getCanvasEvents);
+  app.post('/profile', controller.getCanvasProfile);
 
 }
