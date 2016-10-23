@@ -1,6 +1,7 @@
 var path = require('path');
 var config = require(path.resolve('./config.js'));
 var Client = require('node-rest-client').Client;
+var striptags = require('striptags');
 var client = new Client();
 
 exports.identifySlackOauth = function(req, res, next){
@@ -45,7 +46,7 @@ exports.getCanvasCourses = function(req, res){
   var courses = "";
 
 
-  client.get("https://ufl.instructure.com/api/v1/courses?access_token=" + canvasToken, function (data, response) {
+  client.get("https://ufl.instructure.com/api/v1/courses?access_token=" + config.canvasToken, function (data, response) {
         // parsed response body as js object
         //console.log(data);
 
@@ -159,4 +160,41 @@ exports.getCanvasAssign = function(req, res){
       };
       second();
     });
+};
+
+exports.getCanvasEvents = function(req, res){
+  var courses = [];
+  client.get("https://ufl.instructure.com/api/v1/users/self/upcoming_events?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
+
+        var count = 1;
+        for(var id in data){
+          var assignmentName = data[id].title;
+          var url = data[id].url;
+          var description = data[id].description;
+          var endAt = data[id].end_at;
+
+
+          if(assignmentName !== undefined){
+            console.log("EVENT: " + data[id].title + "\n");
+            console.log("URL: " + data[id].url + "\n");
+            console.log("DESCRIPTION: " + data[id].description + "\n");
+            console.log("EVENT AT: " + data[id].endAt + "\n");
+
+            obj = {
+                  'title': "Event: " + assignmentName,
+                  'text': "\n" + url + "\n Description: " + striptags(description) +
+                  "\nEvent at: " + endAt +"\n"
+            }
+            courses.push(obj);
+            count = count + 1;
+
+          }
+        }
+
+        res.json({
+          'text': 'The following are upcoming: ',
+          'attachments': courses
+        });
+
+  });
 };
