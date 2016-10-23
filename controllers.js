@@ -125,7 +125,68 @@ exports.getCanvasCourses = function(req, res){
   });
 };
 
+exports.getCanvasProfile = function(req, res){
+  var info = [];
+  client.get("https://ufl.instructure.com/api/v1/users/self/profile?access_token=" + config.canvasToken, function (data, response) {
+
+    var name = data.short_name;
+    var url = data.avatar_url;
+    var email = data.login_id;
+
+    if(name !== undefined){
+      obj = {
+        'title': name,
+        'text': "Email: " + email,
+        'image_url' : url 
+      }
+
+    info.push(obj);
+    }
+
+    res.json({
+      'text': 'User information: ',
+      'attachments': info
+    });
+  });
+};
+
+exports.getCanvasEvents = function(req, res){
+  var courses = [];
+  client.get("https://ufl.instructure.com/api/v1/users/self/upcoming_events?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
+
+    for(var id in data){
+      var assignmentName = data[id].title;
+      var url = data[id].url;
+      var description = data[id].description;
+      var endAt = data[id].end_at;
+
+
+      if(assignmentName !== undefined){
+        console.log("EVENT: " + data[id].title + "\n");
+        console.log("URL: " + data[id].url + "\n");
+        console.log("DESCRIPTION: " + data[id].description + "\n");
+        console.log("EVENT AT: " + data[id].endAt + "\n");
+
+        obj = {
+            'title': "Event: " + assignmentName,
+            'text': "\n" + url + "\n Description: " + striptags(description) +
+            "\nEvent at: " + endAt +"\n"
+        }
+        courses.push(obj);
+
+      }
+    }
+
+    res.json({
+      'text': 'The following are upcoming: ',
+      'attachments': courses
+    });
+
+  });
+};
+
 exports.getCanvasAssign = function(req, res){
+  console.log(req.body);
   var responseURL = req.body.response_url;
   var searchTerm = req.body.text;
   var usingSearchTerm = true;
@@ -178,7 +239,6 @@ exports.getCanvasAssign = function(req, res){
           courseNames.push(name);
         }
       }
-    
 
       var count = 0;
       var second = function() {
@@ -226,9 +286,9 @@ exports.getCanvasAssign = function(req, res){
                 }
               }
           }
-          var args = {
-            data: {text: txt},
-            headers: {"Content-Type" : "application/json"}
+          count++;
+          if(count < ids.length) {
+            second();
           }
           if(count === ids.length) {
             if(txt.length === 0) {
@@ -248,66 +308,72 @@ exports.getCanvasAssign = function(req, res){
     });
 };
 
-exports.getCanvasEvents = function(req, res){
-  var courses = [];
-  client.get("https://ufl.instructure.com/api/v1/users/self/upcoming_events?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
+exports.getCanvasAnnouncements = function(req, res){
+  var ids = [];
+  var courseNames = [];
+  var responseURL = req.body.response_url;
+  var txt = "";
+  var attach = [];
 
-    for(var id in data){
-      var assignmentName = data[id].title;
-      var url = data[id].url;
-      var description = data[id].description;
-      var endAt = data[id].end_at;
+  var lastWeek = new Date();
+  lastWeek.setDate(lastWeek.getDate() - 7);
 
+  res.status(200).json({
+    'text': "Retrieving announcements from the last 7 days...\n"
+  });
 
-      if(assignmentName !== undefined){
-        console.log("EVENT: " + data[id].title + "\n");
-        console.log("URL: " + data[id].url + "\n");
-        console.log("DESCRIPTION: " + data[id].description + "\n");
-        console.log("EVENT AT: " + data[id].endAt + "\n");
+  client.get("https://ufl.instructure.com/api/v1/courses?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
+    for(var course in data){
+      var name = data[course].name;
+      var courseID = data[course].id;
+      if(courseID !== undefined && name !== undefined) {
+        ids.push(courseID);
+        courseNames.push(name);
+      }
+    }
 
-        obj = {
-            'title': "Event: " + assignmentName,
-            'text': "\n" + url + "\n Description: " + striptags(description) +
-            "\nEvent at: " + endAt +"\n"
+    var count = 0;
+    var announce = function(){
+      client.get("https://ufl.instructure.com/api/v1/announcements?context_codes=course_" + ids[count] + "&access_token=" + config.canvasToken, function (data, response) {
+        txt += "\n\n\n-------- " + courseNames[count] + " --------";
+        for(var course in data){
+          if(data[course] !== undefined){
+            var posted = new Date(data[course].posted_at);
+            if(posted.valueOf() >= lastWeek) {
+              var pretext = courseNames[count];
+              var title = data[course].title;
+              var title_link = data[course].html_url;
+              var footer = data[course].posted_at;
+              var textBody = striptags(data[course].message);
+              attach.push({
+                "pretext": pretext,
+                "title": title,
+                "footer": footer,
+                "title_link": title_link,
+                "text": textBody
+              });
+            };
+          }
         }
-        courses.push(obj);
-
-      }
+        count++;
+        if(count === ids.length){
+          if(attach === "") {
+            attach = "\n\nSorry, no announcements found";
+          }
+          var args = {
+            data: {"attachments": attach},
+            headers: {"Content-Type" : "application/json"}
+          }
+          client.post(responseURL, args, function(data, response) {});
+        }
+        if(count < ids.length){
+          announce();
+        }
+      });
     }
-
-    res.json({
-      'text': 'The following are upcoming: ',
-      'attachments': courses
-    });
-
+    announce();
   });
 };
-
-exports.getCanvasProfile = function(req, res){
-  var info = [];
-  client.get("https://ufl.instructure.com/api/v1/users/self/profile?access_token=" + config.canvasToken, function (data, response) {
-
-    var name = data.short_name;
-    var url = data.avatar_url;
-    var email = data.login_id;
-
-    if(name !== undefined){
-      obj = {
-        'title': name,
-        'text': "Email: " + email,
-        'image_url' : url 
-      }
-
-    info.push(obj);
-    }
-
-    res.json({
-      'text': 'User information: ',
-      'attachments': info
-    });
-  });
-};
-
 
 exports.getCourseEvents = function(req, res){
   //coursename start [d/m/y] OR/AND end [d/m/y] OR allevents
