@@ -56,14 +56,14 @@ var createDateFromTerm = function(courseTerm){
   //TODO: don't assume year is > 2000
   var dateYear = 2000 + parseInt(year);
   var termStartDate, termEndDate;
-  
+
   //TODO: add summer AND don't use UF specific dates
   if(term === 'fall'){
     termStartDate = createDateAtBeginningOfDay(7, 22, dateYear); //August 22nd
 
     termEndDate = createDateAtBeginningOfDay(0, 4, dateYear + 1); //January 4th of following year
   }
-  
+
   if(term === 'spring'){
     termStartDate = createDateAtBeginningOfDay(0, 4, dateYear);
 
@@ -131,7 +131,8 @@ exports.getCanvasAssign = function(req, res){
   var usingSearchTerm = true;
   var tokens = searchTerm.split(" ");
   var ids = [];
-  var txt = "";
+  var courseNames = [];
+  var txt = [];
   var htmlURL;
 
   var start = new Date();
@@ -168,53 +169,83 @@ exports.getCanvasAssign = function(req, res){
     }
   }
 
-  client.get("https://ufl.instructure.com/api/v1/courses?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
-    for(var course in data){
-      var courseID = data[course].id;
-      if(courseID !== undefined) {
-        ids.push(courseID);
+    client.get("https://ufl.instructure.com/api/v1/courses?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
+      for(var course in data){
+        var courseID = data[course].id;
+        var name = data[course].name;
+        if(courseID !== undefined && name !== undefined) {
+          ids.push(courseID);
+          courseNames.push(name);
+        }
       }
     }
 
-    var count = 0;
-    var second = function() {
-      if(usingSearchTerm === true) {
-        var htmlUrl = "https://ufl.instructure.com/api/v1/courses/"+ids[count]+"/assignments?search_term=" + searchTerm + "&access_token=" + config.canvasToken;
-      }
-      else {
-        var htmlUrl = "https://ufl.instructure.com/api/v1/courses/"+ids[count]+"/assignments?bucket=future&access_token=" + config.canvasToken;
-      }
-      client.get(htmlUrl, function (data, response) {
-        for(var course in data){
-            if(course !== undefined && usingSearchTerm === true){
-              txt += data[course].name + "\n" + data[course].html_url + "\nSubmitted: " + data[course].has_submitted_submissions + "\nDue: " + data[course].due_at + "\nPoints: " + data[course].points_possible + "\n\n";
+      var count = 0;
+      var second = function() {
+        if(usingSearchTerm === true) {
+          var htmlUrl = "https://ufl.instructure.com/api/v1/courses/"+ids[count]+"/assignments?search_term=" + searchTerm + "&bucket=future&access_token=" + config.canvasToken;
+        }
+        else {
+          var htmlUrl = "https://ufl.instructure.com/api/v1/courses/"+ids[count]+"/assignments?access_token=" + config.canvasToken;
+        }
+        client.get(htmlUrl, function (data, response) {
+          for(var course in data){
+
+            var pretext = courseNames[count];
+            var textBody;
+            var title = data[course].name;
+            var title_link = data[course].html_url;
+            if(data[course].has_submitted_submissions === true) {
+              textBody = "Due: " + data[course].due_at + "  |  COMPLETE";
             }
-            else if(course !== undefined && usingSearchTerm === false) {
-              var assignmentDate = new Date(data[course].due_at);
-              console.log("assignment date: " + assignmentDate + ", Start: " + start + ", End: " + end);
-              if(assignmentDate <= end && assignmentDate >= start) {
-                txt += data[course].name + "\n" + data[course].html_url + "\nSubmitted: " + data[course].has_submitted_submissions + "\nDue: " + data[course].due_at + "\nPoints: " + data[course].points_possible + "\n\n";
+            else {
+              textBody = "Due: " + data[course].due_at + "  |  INCOMPLETE";
+            }
+            var footer = "Points: " + data[course].points_possible;
+
+              if(course !== undefined && usingSearchTerm === true){
+                txt.push({
+                  "pretext": pretext,
+                  "title": title,
+                  "title_link": title_link,
+                  "text": textBody,
+                  "footer": footer
+                });
               }
-            }
-        }
-        count++;
-        if(count < ids.length) {
-          second();
-        }
-        if(count === ids.length) {
-          if(txt === "") {
-            txt = "Sorry, no assignments found";
+              else if(course !== undefined && usingSearchTerm === false) {
+                var assignmentDate = new Date(data[course].due_at);
+                console.log("assignment date: " + assignmentDate + ", Start: " + start + ", End: " + end);
+                if(assignmentDate <= end && assignmentDate >= start) {
+                  txt.push({
+                    "pretext": pretext,
+                    "title": title,
+                    "title_link": title_link,
+                    "text": textBody,
+                    "footer": footer
+                  });
+                }
+              }
           }
           var args = {
             data: {text: txt},
             headers: {"Content-Type" : "application/json"}
           }
-          client.post(responseURL, args, function(data, response) {});
-        }
-      });
-    };
-    second();
-  });
+          if(count === ids.length) {
+            if(txt.length === 0) {
+              txt.push({
+                "pretext": "Sorry, no assignments found"
+              });
+            }
+            var args = {
+              data: {"attachments": txt},
+              headers: {"Content-Type" : "application/json"}
+            }
+            client.post(responseURL, args, function(data, response) {});
+          }
+        });
+      };
+      second();
+    });
 };
 
 exports.getCanvasEvents = function(req, res){
@@ -268,7 +299,12 @@ exports.getCanvasProfile = function(req, res){
       }
       info.push(obj);
 
-    }
+          obj = {
+                'title': name,
+                'text': "Email: " + email,
+                'image_url' : url
+          }
+          info.push(obj);
 
     res.json({
       'text': 'User information: ',
