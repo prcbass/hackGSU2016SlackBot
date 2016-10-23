@@ -34,6 +34,73 @@ exports.myusername = function(req, res){
   });
 };
 
+exports.getCanvasAnnouncements = function(req, res){
+  var ids = [];
+  var courseNames = [];
+  var responseURL = req.body.response_url;
+  var txt = "";
+  var attach = [];
+
+  var lastWeek = new Date();
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  res.status(200).json({
+    'text': "Retrieving announcements from the last 7 days...\n"
+  });
+
+  client.get("https://ufl.instructure.com/api/v1/courses?enrollment_state=active&access_token=" + config.canvasToken, function (data, response) {
+    for(var course in data){
+      var name = data[course].name;
+      var courseID = data[course].id;
+      if(courseID !== undefined && name !== undefined) {
+        ids.push(courseID);
+        courseNames.push(name);
+      }
+    }
+
+    var count = 0;
+    var announce = function(){
+      client.get("https://ufl.instructure.com/api/v1/announcements?context_codes=course_" + ids[count] + "&access_token=" + config.canvasToken, function (data, response) {
+        txt += "\n\n\n-------- " + courseNames[count] + " --------";
+        for(var course in data){
+          if(data[course] !== undefined){
+            var posted = new Date(data[course].posted_at);
+            if(posted.valueOf() >= lastWeek) {
+              var pretext = courseNames[count];
+              var title = data[course].title;
+              var title_link = data[course].html_url;
+              var footer = data[course].posted_at;
+              var textBody = striptags(data[course].message);
+              attach.push({
+                "pretext": pretext,
+                "title": title,
+                "footer": footer,
+                "title_link": title_link,
+                "text": textBody
+              });
+            };
+          }
+        }
+        count++;
+        if(count === ids.length){
+          if(attach === "") {
+            attach = "\n\nSorry, no announcements found";
+          }
+          var args = {
+            data: {"attachments": attach},
+            headers: {"Content-Type" : "application/json"}
+          }
+          client.post(responseURL, args, function(data, response) {});
+        }
+        if(count < ids.length){
+          announce();
+        }
+      });
+    }
+    announce();
+  });
+}
+
 var createDateAtBeginningOfDay = function(month, day, year){
   var date = new Date();
   date.setMonth(month);
