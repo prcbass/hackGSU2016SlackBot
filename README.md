@@ -4,6 +4,8 @@
 
 OnlineCourseManager uses Slack API and Canvas LMS API to integrate new Slash Commands into a Slack team directory. These Slash Commands are intended to be used with Canvas, a learning management system used by the University of Florida, to query and grab course information to display directly into Slack. 
 
+Devpost Page for this project - https://devpost.com/software/hackgsu2016slackbot <br>
+
 ## Slack Slash Commands
 
 Here Slack Slash Commands you can use with OnlineCourseManager: <br>
