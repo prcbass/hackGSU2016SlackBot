@@ -6,6 +6,8 @@ OnlineCourseManager uses Slack API and Canvas LMS API to integrate new Slash Com
 
 Devpost Page for this project - https://devpost.com/software/hackgsu2016slackbot <br>
 
+Demo - https://youtu.be/aYrF68Zh-Sw <br>
+
 ## Slack Slash Commands
 
 Here Slack Slash Commands you can use with OnlineCourseManager: <br>
